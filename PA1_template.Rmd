@@ -1,25 +1,111 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Assignment 1"
+author: "Dheeraj Singh"
+date: "January 6, 2018"
+output: html_document
 ---
+# Reproducible Research Peer Graded Assignment- 1
+
+## Add all the required packages in the workspace
+
+```{r, message=FALSE}
+library(data.table)
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+library(stringr)
+
+```
+
+## Read file code of "Activity Monitoring Data"
+```{r}
+amd <- fread("activity.csv", header = TRUE)
+```
+
+## Have a look on the summary
+```{r}
+head(amd, n = 10)
+summary(amd)
+glimpse(amd)
+```
+
+```{r}
+## Change the date format whcih is saved as a charecter vecrtor
+
+amd$date <- ymd(amd$date)
+```
 
 
-## Loading and preprocessing the data
+## Arrange data set as per requirement and **Histogram of TOtal no of step taken per day**
+```{r}
+amd %>% filter(!is.na(steps))%>%
+        group_by(date)%>%
+        summarize(spd = sum(steps))-> amd1
+
+amd %>% filter(!is.na(steps))%>%
+        group_by(date)%>%
+        summarize(spd = sum(steps))-> amd1
+
+ggplot(amd1, aes(x = spd))+
+        geom_histogram(binwidth = 1000, col  ="red")+
+        labs(title = "Histogram for Steps per Day", x = "Steps", y= "Count of steps")
+```
 
 
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
+## Calculating mean and median of each day of dataset
+```{r}
+step_mean <- mean(amd1$spd, na.rm = T)
+step_median <- median(amd1$spd, na.rm = T)
+step_mean
+step_median
+```
 
 
+## Time Series plot to make a chart
 
-## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+
+amd %>% filter(!is.na(steps))%>%
+group_by(interval)%>%
+        summarize(steps = mean(steps))-> amd1
+
+ggplot(amd1, aes(x = interval, y = steps, type = "l"))+
+        geom_line(col  ="red")+
+        labs(title = "Time-Series Plot for Steps", x = "Interval", y=  "Steps")
+```
+             
+## Code to describe and show a strategy for imputing missing data
+
+to impute missing values we would replace all NA's with mean of steps'
+
+```{r}
+amd$steps[is.na(amd$steps)] <- mean(amd$steps, na.rm = T)
+head(amd)
+sum(is.na(amd$steps))
+```
+
+
+## Histogram of the total number of steps taken each day after missing values are imputed
+```{r}
+amd %>% group_by(interval)%>%
+        summarize(steps = mean(steps))-> amd2
+
+ggplot(amd2, aes(x = interval, y = steps, type = "l"))+
+        geom_line(col  ="red")+
+        labs(title = "Time-Series Plot for Steps", x = "Interval", y=  "Steps")
+```
+
+
+## Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+
+First we need to mutate a new coloumn of weektype and then plotting the graph of comparision of weekdays and weekedends no of steps
+
+```{r}
+amd_full <- amd %>% mutate(weektype = ifelse(weekdays(date) == "Saturday" | weekdays(date) == "Sunday", "Weekend", "Weekdays"))
+amd_full %>% group_by(interval, weektype)%>%
+        summarize(stepmean = mean(steps))%>%
+        ggplot(aes(x = interval, stepmean))+
+        geom_line(col = "red")+
+        facet_wrap(~weektype, ncol = 1, nrow=2)+
+        labs(x = "interval", y = "Average no of steps")
+```
